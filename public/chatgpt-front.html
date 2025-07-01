@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Medussa IA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #18181b;
+            color: #e5e7eb;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+        header {
+            background: #23272f;
+            color: #fff;
+            padding: 16px 0;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px #0002;
+        }
+        #chat {
+            flex: 1;
+            padding: 24px 0 24px 0;
+            overflow-y: auto;
+            background: #18181b;
+            display: flex;
+            flex-direction: column;
+        }
+        .msg {
+            display: flex;
+            margin: 12px 24px;
+        }
+        .msg.user {
+            justify-content: flex-end;
+        }
+        .msg.ia {
+            justify-content: flex-start;
+        }
+        .bubble {
+            max-width: 70vw;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 1.05em;
+            line-height: 1.6;
+            box-shadow: 0 1px 8px #0003;
+            word-break: break-word;
+        }
+        .msg.user .bubble {
+            background: #3b82f6;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .msg.ia .bubble {
+            background: #23272f;
+            color: #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+        #input-area {
+            display: flex;
+            gap: 8px;
+            padding: 18px;
+            background: #23272f;
+        }
+        #prompt {
+            flex: 1;
+            min-height: 42px;
+            max-height: 120px;
+            resize: none;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 1em;
+            background: #1f2937;
+            color: #fff;
+            outline: none;
+        }
+        #send {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 0 26px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #send:active, #send:disabled {
+            background: #204c87;
+        }
+        @media (max-width: 700px) {
+            .bubble {max-width: 92vw;}
+            #input-area {padding: 8px;}
+            .msg {margin: 6px 4vw;}
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <span>💬 Medussa IA — Chat estilo ChatGPT</span>
+    </header>
+    <div id="chat"></div>
+    <form id="input-area" autocomplete="off">
+        <textarea id="prompt" rows="1" placeholder="Escribe tu pregunta aquí..." required></textarea>
+        <button type="submit" id="send">Enviar</button>
+    </form>
+<script>
+const chat = document.getElementById('chat');
+const form = document.getElementById('input-area');
+const promptInput = document.getElementById('prompt');
+function addMsg(text, who='user') {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + who;
+    msg.innerHTML = `<div class="bubble">${text.replace(/\n/g,"<br>")}</div>`;
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+}
+form.onsubmit = async e => {
+    e.preventDefault();
+    const prompt = promptInput.value.trim();
+    if (!prompt) return;
+    addMsg(prompt, 'user');
+    promptInput.value = '';
+    promptInput.disabled = true;
+    document.getElementById('send').disabled = true;
+    addMsg('<i>Escribiendo...</i>', 'ia');
+    // Llama a backend PHP
+    try {
+        const r = await fetch('chatbot.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({prompt})
+        });
+        const d = await r.json();
+        // Quita el "Escribiendo..."
+        chat.removeChild(chat.lastChild);
+        addMsg(d.response, 'ia');
+    } catch (e) {
+        chat.removeChild(chat.lastChild);
+        addMsg("⚠️ Error conectando con la IA.", 'ia');
+    }
+    promptInput.disabled = false;
+    document.getElementById('send').disabled = false;
+    promptInput.focus();
+};
+// Permitir enviar con Shift+Enter y salto de línea normal con Enter
+promptInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+    }
+});
+</script>
+</body>
+</html>
