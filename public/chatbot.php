@@ -9,7 +9,7 @@ if (empty($prompt)) {
 }
 
 $body = json_encode([
-    'model' => 'llama3', // O el nombre del modelo que instalaste
+    'model' => 'phi3', // O el nombre del modelo que instalaste
     'prompt' => $prompt,
     'stream' => false
 ]);
