@@ -24,40 +24,44 @@
         <button type="submit">Enviar</button>
     </form>
 </div>
-<script>
-const chatbox = document.getElementById('chatbox');
-const chatForm = document.getElementById('chatForm');
-const userInput = document.getElementById('userInput');
+<?php
+// ai_backend.php
+header('Content-Type: application/json');
+$data = json_decode(file_get_contents('php://input'), true);
 
-// Inicializa conversación
-let conversation = [];
-
-function appendMsg(author, text) {
-    const div = document.createElement('div');
-    div.className = 'msg ' + author;
-    div.innerText = text;
-    chatbox.appendChild(div);
-    chatbox.scrollTop = chatbox.scrollHeight;
+if (!isset($data['prompt'])) {
+    echo json_encode(['error' => 'Falta el prompt']);
+    exit;
 }
 
-chatForm.onsubmit = async function(e) {
-    e.preventDefault();
-    const userText = userInput.value.trim();
-    if (!userText) return;
-    appendMsg('user', userText);
-    conversation.push({role: 'user', content: userText});
-    userInput.value = '';
-    appendMsg('ai', 'Pensando...');
+// Construye el request para Ollama local
+$model = 'phi'; // Puedes cambiarlo a cualquier modelo instalado
+$ollama_url = 'http://localhost:11434/api/generate';
 
-    // SIMULACIÓN de IA local (sólo para pruebas)
-    // Aquí conectarías vía fetch/ajax a tu backend local de IA real
-    setTimeout(() => {
-        // Simula respuesta IA
-        let aiResponse = "Respuesta simulada de IA para: \"" + userText + "\"\n\n(Conecta aquí tu modelo local)";
-        chatbox.lastChild.innerText = aiResponse;
-        conversation.push({role: 'ai', content: aiResponse});
-    }, 1000);
-};
-</script>
+$body = [
+    'model' => $model,
+    'prompt' => $data['prompt'],
+    'stream' => false
+];
+
+$ch = curl_init($ollama_url);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json'
+]);
+$response = curl_exec($ch);
+
+if ($response === false) {
+    echo json_encode(['error' => 'No se pudo conectar a Ollama']);
+    exit;
+}
+
+$result = json_decode($response, true);
+$answer = $result['response'] ?? 'No response from model.';
+
+echo json_encode(['answer' => $answer]);
+
 </body>
 </html>
